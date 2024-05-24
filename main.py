@@ -2,6 +2,12 @@ import time
 import flet as ft
 from json import load, dumps
 from pypresence import Presence
+
+from pystray import Icon as icons, Menu as menu, MenuItem as item
+
+from PIL import Image
+
+
 pid = 1243274739821183006
 RPC = Presence(pid)
 RPC.connect()
@@ -10,26 +16,91 @@ RPC.update(
     start=int(time.time())
 )
 config = {}
+
 with open('config.json') as json_file:
     config = load(json_file)
+
 def main(page: ft.Page):
+    def open_app(icon, query):
+        page.window_skip_task_bar = False
+        page.window_to_front()
+        page.window_focused = True
+        page.update()
+
+    def close_app(icon, query):
+        icon.stop()
+        page.window_destroy()
+        page.update()
+
+    def on_window_change(e):
+        if e.data == "minimize":
+            e.page.window_skip_task_bar = True
+        elif e.data == "close":
+            RPC.close()
+            tray.stop()
+            e.page.window_destroy()
+        page.update()
+
+    page.on_window_event = on_window_change
+
+    def nothing(i,q):
+        pass
+
+    def open_vk(i,q):
+        page.launch_url("https://vk.com/library_keeper")
+
+    def open_tg(i,q):
+        page.launch_url("https://t.me/core_library")
+
+    tray = icons(
+        name="DiscordCustomRichPresence",
+        icon=Image.open("tray_img.png"),
+        menu=menu(
+            item(
+                "Show App",
+                open_app
+            ),
+            item(
+                "Close app",
+                close_app
+            ),
+            item(
+                "---------",
+                nothing,
+                enabled=False
+            ),
+            item(
+                "Author:",
+                nothing,
+                enabled=False
+            ),
+            item(
+                "VK",
+                open_vk
+            ),
+            item(
+                "Telegram",
+                open_tg
+            ),
+        )
+    )
 
     def save(e):
-        state = "     " if page.controls[0].controls[0].controls[1].value == "" else page.controls[0].controls[0].controls[1].value
-        details = "     " if page.controls[0].controls[1].controls[1].value == "" else page.controls[0].controls[1].controls[1].value
-        lit = "     " if page.controls[0].controls[2].controls[1].value == "" else page.controls[0].controls[2].controls[1].value
-        sit = "     " if page.controls[0].controls[3].controls[1].value == "" else page.controls[0].controls[3].controls[1].value
-        liu = "     " if page.controls[0].controls[4].controls[1].value == "" else page.controls[0].controls[4].controls[1].value
-        siu = "     " if page.controls[0].controls[5].controls[1].value == "" else page.controls[0].controls[5].controls[1].value
+        state = "" if page.controls[0].controls[0].controls[1].value == "" else page.controls[0].controls[0].controls[1].value
+        details = "" if page.controls[0].controls[1].controls[1].value == "" else page.controls[0].controls[1].controls[1].value
+        lit = "" if page.controls[0].controls[2].controls[1].value == "" else page.controls[0].controls[2].controls[1].value
+        sit = "" if page.controls[0].controls[3].controls[1].value == "" else page.controls[0].controls[3].controls[1].value
+        liu = "" if page.controls[0].controls[4].controls[1].value == "" else page.controls[0].controls[4].controls[1].value
+        siu = "" if page.controls[0].controls[5].controls[1].value == "" else page.controls[0].controls[5].controls[1].value
         buttons = "None"
         if page.controls[0].controls[6].controls[1].value:
-            b1_text = "     " if page.controls[0].controls[6].controls[2].value == "" else page.controls[0].controls[6].controls[2].value
-            b1_url = "     " if page.controls[0].controls[6].controls[3].value == "" else page.controls[0].controls[6].controls[3].value
+            b1_text = "" if page.controls[0].controls[6].controls[2].value == "" else page.controls[0].controls[6].controls[2].value
+            b1_url = "" if page.controls[0].controls[6].controls[3].value == "" else page.controls[0].controls[6].controls[3].value
             b1 = {"label": b1_text, "url": b1_url}
             buttons = [b1]
             if page.controls[0].controls[7].controls[1].value:
-                b2_text = "     " if page.controls[0].controls[7].controls[2].value == "" else page.controls[0].controls[7].controls[2].value
-                b2_url = "     " if page.controls[0].controls[7].controls[3].value == "" else page.controls[0].controls[7].controls[3].value
+                b2_text = "" if page.controls[0].controls[7].controls[2].value == "" else page.controls[0].controls[7].controls[2].value
+                b2_url = "" if page.controls[0].controls[7].controls[3].value == "" else page.controls[0].controls[7].controls[3].value
                 b2 = {"label": b2_text, "url": b2_url}
                 buttons.append(b2)
         config["state"] = state
@@ -108,13 +179,12 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     width = 500
     height = 740
-    page.window_resizable = False
-    # page.window_opacity = 1
-    # page.window_frameless = True
     page.window_min_height = height
     page.window_min_width = width
     page.window_height = height
     page.window_width = width
+    page.window_prevent_close = True
+    page.window_maximizable = False
     page.theme = ft.Theme(color_scheme=ft.ColorScheme(primary=ft.colors.PURPLE, secondary=ft.colors.PINK))
     page.add(
         ft.Column(controls=[
@@ -191,4 +261,6 @@ def main(page: ft.Page):
         ])
     )
     page.update()
+
+    tray.run()
 ft.app(main)
